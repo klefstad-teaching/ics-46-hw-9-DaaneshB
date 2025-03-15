@@ -1,0 +1,1 @@
+/usr/bin/c++  -fsanitize=address -fsanitize=undefined  -fsanitize=address -fsanitize=undefined CMakeFiles/student_gtests.dir/gtest/gtestmain.cpp.o CMakeFiles/student_gtests.dir/gtest/student_gtests.cpp.o CMakeFiles/student_gtests.dir/src/dijkstras.cpp.o CMakeFiles/student_gtests.dir/src/ladder.cpp.o -o student_gtests  /usr/lib/x86_64-linux-gnu/libgtest.a 

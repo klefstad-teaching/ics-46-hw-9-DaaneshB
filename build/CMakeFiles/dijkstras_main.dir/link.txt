@@ -1,0 +1,1 @@
+/usr/bin/c++  -fsanitize=address -fsanitize=undefined  -fsanitize=address -fsanitize=undefined CMakeFiles/dijkstras_main.dir/src/dijkstras.cpp.o CMakeFiles/dijkstras_main.dir/src/dijkstras_main.cpp.o -o dijkstras_main 
