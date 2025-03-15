@@ -1,10 +1,14 @@
 #include "ladder.h"
 #include <algorithm>
 #include <cctype>
-#include <ctime>
+#include <queue>
+#include <set>
+#include <string>
+#include <vector>
 
+using namespace std;
 
-// Helper function to convert string to lowercase
+// Convert string to lowercase
 string to_lower(const string& word) {
     string lower_word = word;
     transform(lower_word.begin(), lower_word.end(), lower_word.begin(), ::tolower);
@@ -71,7 +75,6 @@ void load_words(set<string>& word_list, const string& file_name) {
     
     string word;
     while (file >> word) {
-        // Convert to lowercase and add to set
         word_list.insert(to_lower(word));
     }
 
@@ -82,18 +85,17 @@ void load_words(set<string>& word_list, const string& file_name) {
 
 // Generate word ladder using Breadth-First Search
 vector<string> generate_word_ladder(const string& begin_word, const string& end_word, const set<string>& word_list) {
+    // If start and end are the same, return empty vector
+    if (begin_word == end_word) {
+        return {};
+    }
+
     // Convert words to lowercase
     string start = to_lower(begin_word);
     string goal = to_lower(end_word);
     
-    // Special case: start and end are the same
-    if (start == goal) {
-        return {start};
-    }
-
-    // Validate that start and goal are in dictionary (except for start word)
+    // Validate that goal is in dictionary
     if (word_list.find(goal) == word_list.end()) {
-        cerr << "Error: End word '" << goal << "' not in dictionary" << endl;
         return {};
     }
     
@@ -141,7 +143,8 @@ void print_word_ladder(const vector<string>& ladder) {
         cout << "No word ladder found." << endl;
         return;
     }
-    
+
+    cout << "Word ladder found: ";
     for (const auto& word : ladder) {
         cout << word << " ";
     }

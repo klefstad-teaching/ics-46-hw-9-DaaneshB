@@ -1,5 +1,13 @@
 #include "dijkstras.h"
+#include <algorithm>
+#include <iostream>
+#include <queue>
+#include <vector>
+#include <limits>
 
+using namespace std;
+
+// Dijkstra's algorithm to find shortest paths
 vector<int> dijkstra_shortest_path(const Graph& G, int source, vector<int>& previous) {
     int n = G.size();
     vector<int> distances(n, INF);
@@ -15,9 +23,7 @@ vector<int> dijkstra_shortest_path(const Graph& G, int source, vector<int>& prev
         int current_distance = pq.top().first;
         pq.pop();
         
-        // Skip if already visited or if a shorter path is found
-        if (visited[u] || current_distance > distances[u]) continue;
-        
+        if (visited[u]) continue;
         visited[u] = true;
         
         for (const auto& edge : G[u]) {
@@ -35,29 +41,37 @@ vector<int> dijkstra_shortest_path(const Graph& G, int source, vector<int>& prev
     return distances;
 }
 
+// Extract shortest path between source and destination
 vector<int> extract_shortest_path(const vector<int>& distances, const vector<int>& previous, int destination) {
-    if (distances[destination] == INF) {
-        return {}; // No path exists
-    }
-    
     vector<int> path;
+    
+    // Reconstruct path from destination back to source
     for (int at = destination; at != -1; at = previous[at]) {
         path.push_back(at);
     }
+    
+    // Reverse to get path from source to destination
     reverse(path.begin(), path.end());
+    
     return path;
 }
 
-void print_path(const vector<int>& path, int total) {
+// Print path with specific formatting
+void print_path(const vector<int>& path, int total_cost) {
     if (path.empty()) {
         cout << "No path found." << endl;
         return;
     }
-    
-    cout << "Path: ";
+
+    // Print path without "Path: " prefix and with space-separated vertices
     for (size_t i = 0; i < path.size(); ++i) {
         cout << path[i];
-        if (i < path.size() - 1) cout << " -> ";
+        if (i < path.size() - 1) {
+            cout << " ";
+        }
     }
-    cout << "\nTotal cost: " << total << endl;
+    cout << endl;
+    
+    // Print total cost in the exact format specified
+    cout << "Total cost is " << total_cost << endl;
 }
