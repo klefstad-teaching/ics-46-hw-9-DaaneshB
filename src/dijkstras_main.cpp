@@ -2,7 +2,7 @@
 
 int main() {
     // Prompt for input file
-    string filename = "../src/largest.txt";
+    string filename = "../src/small.txt";
     // Create graph
     Graph G;
     
