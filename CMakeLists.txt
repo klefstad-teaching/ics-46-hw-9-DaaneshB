@@ -11,7 +11,7 @@ set(DIJKSTRAS_SRC_FILES
   src/dijkstras.cpp
 )
 
-add_executable(dijkstra_main
+add_executable(dijkstras_main
   ${DIJKSTRAS_SRC_FILES}
   src/dijkstras_main.cpp
 )
