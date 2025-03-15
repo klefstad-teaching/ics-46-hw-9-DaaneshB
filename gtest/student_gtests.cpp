@@ -35,7 +35,7 @@ TEST_F(WordLadderTest, Adjacency) {
     EXPECT_TRUE(is_adjacent("cat", "cot")) << "cat and cot should be adjacent";
     EXPECT_FALSE(is_adjacent("cat", "dog")) << "cat and dog should not be adjacent";
 }
-/*
+
 // Test word ladder generation with simple cases
 TEST_F(WordLadderTest, SimpleWordLadders) {
     // Test cases with known short ladders
@@ -96,7 +96,7 @@ TEST_F(WordLadderTest, LadderLength) {
     EXPECT_LE(ladder.size(), 10) << "Ladder should not be unreasonably long";
     EXPECT_GE(ladder.size(), 2) << "Ladder should have at least two words";
 }
-*/
+
 
 TEST_F(DijkstrasTest, BasicShortestPath) {
     vector<int> previous;
