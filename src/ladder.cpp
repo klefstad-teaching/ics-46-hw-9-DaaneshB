@@ -94,7 +94,7 @@ vector<string> generate_word_ladder(
     string start = to_lower(begin_word);
     string goal = to_lower(end_word);
 
-    // If start and goal are the same
+    // If start and goal are the same, return the word
     if (start == goal) {
         return {start};
     }
@@ -148,7 +148,7 @@ vector<string> generate_word_ladder(
 // Print word ladder
 void print_word_ladder(const vector<string>& ladder) {
     if (ladder.empty()) {
-        cout << "No ladder found." << endl;
+        cout << "No word ladder found." << endl;
         return;
     }
 
