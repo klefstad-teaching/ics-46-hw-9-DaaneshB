@@ -1,4 +1,5 @@
 #include "ladder.h"
+// ladder.cpp
 #include <iostream>
 #include <fstream>
 #include <queue>
@@ -13,6 +14,8 @@
 #include <chrono>
 #include <limits>
 
+#define my_assert(e) {cout << #e << ((e) ? " passed": " failed") << endl;}
+
 using namespace std;
 
 // Utility function to convert string to lowercase
@@ -21,47 +24,45 @@ string to_lower(string word) {
     return word;
 }
 
-// Error handling function
-void error(string word1, string word2, string msg) {
-    cerr << "Error with words '" << word1 << "' and '" << word2 << "': " << msg << endl;
-    exit(1);
-}
-
-// Edit distance calculation
+// Edit distance calculation with more flexible matching
 bool edit_distance_within(const string& str1, const string& str2, int d) {
-    // If lengths differ by more than d, they can't be within the edit distance
+    // If lengths differ too much, they can't be within the edit distance
     if (abs((int)str1.length() - (int)str2.length()) > d) 
         return false;
 
-    // Create a matrix to store edit distances
-    vector<vector<int>> dp(str1.length() + 1, vector<int>(str2.length() + 1, 0));
+    // Ensure str1 is the shorter string
+    const string& shorter = (str1.length() <= str2.length()) ? str1 : str2;
+    const string& longer = (str1.length() <= str2.length()) ? str2 : str1;
 
-    // Initialize first row and column
-    for (size_t i = 0; i <= str1.length(); ++i)
-        dp[i][0] = i;
-    for (size_t j = 0; j <= str2.length(); ++j)
-        dp[0][j] = j;
+    int edits = 0;
+    size_t i = 0, j = 0;
 
-    // Compute edit distance
-    for (size_t i = 1; i <= str1.length(); ++i) {
-        for (size_t j = 1; j <= str2.length(); ++j) {
-            // If characters are the same, no edit needed
-            if (str1[i-1] == str2[j-1]) {
-                dp[i][j] = dp[i-1][j-1];
-            }
-            else {
-                // Minimum of insert, delete, or replace
-                dp[i][j] = 1 + min({
-                    dp[i-1][j],     // deletion
-                    dp[i][j-1],     // insertion
-                    dp[i-1][j-1]    // replacement
-                });
+    while (i < shorter.length() && j < longer.length()) {
+        if (shorter[i] == longer[j]) {
+            i++;
+            j++;
+        } else {
+            edits++;
+            
+            if (edits > d) 
+                return false;
+
+            // If lengths are same, move both indices (substitution)
+            if (shorter.length() == longer.length()) {
+                i++;
+                j++;
+            } else {
+                // Lengths differ, move only longer word index (insertion/deletion)
+                j++;
             }
         }
     }
 
-    // Return true if edit distance is within d
-    return dp[str1.length()][str2.length()] <= d;
+    // Account for any remaining characters
+    if (i < shorter.length() || j < longer.length()) 
+        edits++;
+
+    return edits <= d;
 }
 
 // Check if two words are adjacent
@@ -83,7 +84,7 @@ void load_words(set<string>& word_list, const string& file_name) {
     }
 }
 
-// Bidirectional BFS for word ladder generation
+// Optimized word ladder generation
 vector<string> generate_word_ladder(
     const string& begin_word, 
     const string& end_word, 
@@ -93,12 +94,6 @@ vector<string> generate_word_ladder(
     string start = to_lower(begin_word);
     string goal = to_lower(end_word);
 
-    // Validate end word is in dictionary
-    if (word_list.find(goal) == word_list.end()) {
-        error(start, goal, "End word not in dictionary");
-        return {};
-    }
-
     // If start and goal are the same
     if (start == goal) {
         return {start};
@@ -107,145 +102,47 @@ vector<string> generate_word_ladder(
     // Convert word_list to unordered_set for faster lookups
     unordered_set<string> dictionary(word_list.begin(), word_list.end());
 
-    // Bidirectional BFS
-    unordered_map<string, string> forward_parent;
-    unordered_map<string, string> backward_parent;
-    unordered_set<string> forward_visited;
-    unordered_set<string> backward_visited;
-    queue<string> forward_queue;
-    queue<string> backward_queue;
+    // Queue for BFS
+    queue<vector<string>> ladder_queue;
+    unordered_set<string> visited;
 
-    forward_queue.push(start);
-    backward_queue.push(goal);
-    forward_visited.insert(start);
-    backward_visited.insert(goal);
+    // Initialize with start word
+    ladder_queue.push({start});
+    visited.insert(start);
 
-    // Timeout mechanism
-    auto start_time = chrono::steady_clock::now();
-    const int MAX_SEARCH_TIME_SECONDS = 10;  // Reduced timeout
-    const int MAX_LADDER_LENGTH = 50;
+    while (!ladder_queue.empty()) {
+        // Get current ladder
+        vector<string> current_ladder = ladder_queue.front();
+        ladder_queue.pop();
 
-    string meeting_word;
-    bool found = false;
+        // Get last word in current ladder
+        string last_word = current_ladder.back();
 
-    while (!forward_queue.empty() && !backward_queue.empty()) {
-        // Check for timeout
-        auto current_time = chrono::steady_clock::now();
-        auto elapsed = chrono::duration_cast<chrono::seconds>(current_time - start_time);
-        if (elapsed.count() > MAX_SEARCH_TIME_SECONDS) {
-            error(start, goal, "Search timed out");
-            return {};
-        }
+        // Try every word in dictionary
+        for (const string& candidate : dictionary) {
+            // Skip if already visited
+            if (visited.count(candidate)) continue;
 
-        // Expand forward search
-        {
-            int size = forward_queue.size();
-            for (int i = 0; i < size; i++) {
-                string current = forward_queue.front();
-                forward_queue.pop();
+            // Check if candidate is adjacent to last word
+            if (is_adjacent(last_word, candidate)) {
+                // Create new ladder
+                vector<string> new_ladder = current_ladder;
+                new_ladder.push_back(candidate);
 
-                // Prevent excessively long ladders
-                if (forward_parent.size() > MAX_LADDER_LENGTH) continue;
-
-                // Try all possible transformations
-                for (size_t j = 0; j < current.length(); j++) {
-                    string next = current;
-                    for (char c = 'a'; c <= 'z'; c++) {
-                        next[j] = c;
-                        
-                        // Skip if not in dictionary or already visited
-                        if (dictionary.count(next) == 0 || forward_visited.count(next)) 
-                            continue;
-
-                        // Check if this word connects the two searches
-                        if (backward_visited.count(next)) {
-                            meeting_word = next;
-                            found = true;
-                            break;
-                        }
-
-                        forward_queue.push(next);
-                        forward_visited.insert(next);
-                        forward_parent[next] = current;
-                    }
-
-                    if (found) break;
+                // Check if goal reached
+                if (candidate == goal) {
+                    return new_ladder;
                 }
 
-                if (found) break;
+                // Mark as visited and enqueue
+                visited.insert(candidate);
+                ladder_queue.push(new_ladder);
             }
-
-            if (found) break;
-        }
-
-        // Expand backward search
-        {
-            int size = backward_queue.size();
-            for (int i = 0; i < size; i++) {
-                string current = backward_queue.front();
-                backward_queue.pop();
-
-                // Prevent excessively long ladders
-                if (backward_parent.size() > MAX_LADDER_LENGTH) continue;
-
-                // Try all possible transformations
-                for (size_t j = 0; j < current.length(); j++) {
-                    string next = current;
-                    for (char c = 'a'; c <= 'z'; c++) {
-                        next[j] = c;
-                        
-                        // Skip if not in dictionary or already visited
-                        if (dictionary.count(next) == 0 || backward_visited.count(next)) 
-                            continue;
-
-                        // Check if this word connects the two searches
-                        if (forward_visited.count(next)) {
-                            meeting_word = next;
-                            found = true;
-                            break;
-                        }
-
-                        backward_queue.push(next);
-                        backward_visited.insert(next);
-                        backward_parent[next] = current;
-                    }
-
-                    if (found) break;
-                }
-
-                if (found) break;
-            }
-
-            if (found) break;
         }
     }
 
-    // If no path found
-    if (!found) {
-        error(start, goal, "No ladder found");
-        return {};
-    }
-
-    // Reconstruct the path
-    vector<string> ladder;
-    string current = meeting_word;
-
-    // Reconstruct forward path
-    while (current != start) {
-        ladder.push_back(current);
-        current = forward_parent[current];
-    }
-    ladder.push_back(start);
-    reverse(ladder.begin(), ladder.end());
-
-    // Reconstruct backward path
-    current = meeting_word;
-    while (current != goal) {
-        current = backward_parent[current];
-        ladder.push_back(current);
-    }
-
-    return ladder;
+    // No ladder found, return empty vector
+    return {};
 }
 
 // Print word ladder
@@ -255,7 +152,6 @@ void print_word_ladder(const vector<string>& ladder) {
         return;
     }
 
-    // Specific format for the test case
     cout << "Word ladder found: ";
     for (const string& word : ladder) {
         cout << word << " ";
@@ -265,30 +161,13 @@ void print_word_ladder(const vector<string>& ladder) {
 
 // Verify word ladder
 void verify_word_ladder() {
-    // Load dictionary
-    set<string> test_dictionary;
-    load_words(test_dictionary, "words.txt");
+    set<string> word_list;
+    load_words(word_list, "../src/words.txt");
 
-    // Test cases with known challenging ladders
-    vector<pair<string, string>> test_pairs = {
-        {"awake", "sleep"},
-        {"code", "data"},
-        {"cat", "dog"}
-    };
-
-    for (const auto& pair : test_pairs) {
-        try {
-            vector<string> ladder = generate_word_ladder(pair.first, pair.second, test_dictionary);
-            
-            // Verify ladder
-            if (!ladder.empty()) {
-                cout << "Ladder from " << pair.first << " to " << pair.second << ":" << endl;
-                print_word_ladder(ladder);
-            } else {
-                cout << "No ladder found between " << pair.first << " and " << pair.second << endl;
-            }
-        } catch (const exception& e) {
-            cerr << "Error generating ladder: " << e.what() << endl;
-        }
-    }
+    my_assert(generate_word_ladder("cat", "dog", word_list).size() == 4);
+    my_assert(generate_word_ladder("marty", "curls", word_list).size() == 6);
+    my_assert(generate_word_ladder("code", "data", word_list).size() == 6);
+    my_assert(generate_word_ladder("work", "play", word_list).size() == 6);
+    my_assert(generate_word_ladder("sleep", "awake", word_list).size() == 8);
+    my_assert(generate_word_ladder("car", "cheat", word_list).size() == 4);
 }
