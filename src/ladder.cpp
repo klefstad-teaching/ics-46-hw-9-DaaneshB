@@ -107,9 +107,17 @@ vector<string> generate_word_ladder(const string& begin_word, const string& end_
     set<string> visited;
     visited.insert(start);
     
+    // Limit the search depth to prevent infinite loops
+    int max_ladder_length = 10;
+    
     while (!ladder_queue.empty()) {
         auto current_ladder = ladder_queue.front();
         ladder_queue.pop();
+        
+        // Prevent excessively long ladders
+        if (current_ladder.size() > max_ladder_length) {
+            continue;
+        }
         
         string last_word = current_ladder.back();
         
