@@ -85,56 +85,64 @@ void load_words(set<string>& word_list, const string& file_name) {
 
 // Generate word ladder using Breadth-First Search
 vector<string> generate_word_ladder(const string& begin_word, const string& end_word, const set<string>& word_list) {
-    // If start and end are the same, return empty vector
+    // Handle same word case
     if (begin_word == end_word) {
         return {};
     }
 
-    // Convert words to lowercase
+    // Convert to lowercase
     string start = to_lower(begin_word);
     string goal = to_lower(end_word);
     
-    // Validate that goal is in dictionary
+    // Validate goal is in dictionary
     if (word_list.find(goal) == word_list.end()) {
         return {};
     }
     
-    // Queue to store partial ladders
+    // Precompute words of similar length for faster searching
+    vector<string> candidate_words;
+    for (const auto& word : word_list) {
+        // Only consider words within ±1 length of start word
+        if (abs((int)word.length() - (int)start.length()) <= 1) {
+            candidate_words.push_back(word);
+        }
+    }
+    
+    // Queue for BFS
     queue<vector<string>> ladder_queue;
     ladder_queue.push({start});
     
-    // Set to track used words
+    // Track visited words to prevent cycles
     set<string> visited;
     visited.insert(start);
     
-    // Limit the search depth to prevent infinite loops
-    int max_ladder_length = 10;
+    // Limit ladder length to prevent infinite loops
+    const int MAX_LADDER_LENGTH = 10;
     
     while (!ladder_queue.empty()) {
         auto current_ladder = ladder_queue.front();
         ladder_queue.pop();
         
-        // Prevent excessively long ladders
-        if (current_ladder.size() > max_ladder_length) {
+        // Stop if ladder gets too long
+        if (current_ladder.size() > MAX_LADDER_LENGTH) {
             continue;
         }
         
         string last_word = current_ladder.back();
         
-        // Try all words in the dictionary
-        for (const auto& word : word_list) {
-            // Skip if word has been used or is not adjacent
+        // Try candidate words
+        for (const auto& word : candidate_words) {
+            // Skip visited words and check adjacency
             if (visited.find(word) == visited.end() && is_adjacent(last_word, word)) {
-                // Create new ladder
                 vector<string> new_ladder = current_ladder;
                 new_ladder.push_back(word);
                 
-                // Check if goal is reached
+                // Goal reached
                 if (word == goal) {
                     return new_ladder;
                 }
                 
-                // Mark as visited and add to queue
+                // Mark as visited and continue search
                 visited.insert(word);
                 ladder_queue.push(new_ladder);
             }
